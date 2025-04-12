@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
 from .models import FeedCreate, FeedUpdate, Feed, FeedContent, ErrorResponse
 from .database import FeedDatabase
 from .services import parse_xml_feed, generate_feed_id
 from typing import List
-from pydantic import HttpUrl
+from pydantic import HttpUrl, BaseModel
 import trafilatura
+
 router = APIRouter(prefix="/feeds", tags=["feeds"])
 
 @router.post("/", response_model=Feed)
@@ -90,17 +91,20 @@ async def refresh_feed(feed_id: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+# Add this model for the extract blog request
+class ExtractBlogRequest(BaseModel):
+    url: str
+
 @router.post("/extractblog", response_model=dict)
-async def extract_blog(url: HttpUrl):
+async def extract_blog(request: ExtractBlogRequest):
     try:
-       
-        downloaded = trafilatura.fetch_url(str(url))
+        downloaded = trafilatura.fetch_url(request.url)
         content = trafilatura.extract(downloaded)
         
         if not content:
             raise HTTPException(status_code=400, detail="Could not extract content from the provided URL")
         
-        return {"url": str(url), "content": content}
+        return {"url": request.url, "content": content}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) 
     
