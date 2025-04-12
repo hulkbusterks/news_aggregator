@@ -3,7 +3,8 @@ from .models import FeedCreate, FeedUpdate, Feed, FeedContent, ErrorResponse
 from .database import FeedDatabase
 from .services import parse_xml_feed, generate_feed_id
 from typing import List
-
+from pydantic import HttpUrl
+import trafilatura
 router = APIRouter(prefix="/feeds", tags=["feeds"])
 
 @router.post("/", response_model=Feed)
@@ -87,4 +88,20 @@ async def refresh_feed(feed_id: str):
         # Return updated metadata
         return FeedDatabase.get_feed_metadata(feed_id)
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/extractblog", response_model=dict)
+async def extract_blog(url: HttpUrl):
+    try:
+       
+        downloaded = trafilatura.fetch_url(str(url))
+        content = trafilatura.extract(downloaded)
+        
+        if not content:
+            raise HTTPException(status_code=400, detail="Could not extract content from the provided URL")
+        
+        return {"url": str(url), "content": content}
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) 
+    
+
