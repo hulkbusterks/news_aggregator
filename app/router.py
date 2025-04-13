@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
-from .models import FeedCreate, FeedUpdate, Feed, FeedContent, ErrorResponse,GroqRequest,ExtractBlogRequest
+from .models import FeedCreate, FeedUpdate, Feed, FeedContent, ErrorResponse,GroqRequest,ExtractBlogRequest,ChatRequest
 from .database import FeedDatabase
 from .services import parse_xml_feed, generate_feed_id
 from typing import List, Optional
@@ -158,12 +158,7 @@ async def process_with_groq(request: GroqRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-class ChatRequest(BaseModel):
-    messages: list
-    max_tokens: Optional[int] = 1024
-    temperature: Optional[float] = 0.7
-    top_p: Optional[float] = 1.0
-    top_k: Optional[int] = 50
+
 
 @router.post("/groq/chat", response_model=dict)
 async def chat_with_groq(request: ChatRequest):

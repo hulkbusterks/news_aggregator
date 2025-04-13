@@ -35,3 +35,9 @@ class GroqRequest(BaseModel):
 
 class ExtractBlogRequest(BaseModel):
     url: str
+class ChatRequest(BaseModel):
+    messages: list
+    max_tokens: Optional[int] = 1024
+    temperature: Optional[float] = 0.7
+    top_p: Optional[float] = 1.0
+    top_k: Optional[int] = 50
