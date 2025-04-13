@@ -1,4 +1,5 @@
 import os
+import json
 from groq import Groq
 
 
@@ -72,15 +73,61 @@ class GroqAgent:
 
     def translate(self, text, target_language="en"):
         try:
+            # Define the function schema for translation
+            tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "translate_text",
+                        "description": f"Translate text from any language to {target_language}",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "translated_text": {
+                                    "type": "string",
+                                    "description": f"The text translated into {target_language}"
+                                },
+                                "language_notes": {
+                                    "type": "string",
+                                    "description": "Optional notes about the translation or language-specific details"
+                                }
+                            },
+                            "required": ["translated_text"]
+                        }
+                    }
+                }
+            ]
+            
+            # Create the prompt for translation
             prompt = f"Translate the following text to {target_language}:\n\n{text}"
-            translation = self.generate_text(prompt)
-            return translation
+            
+            # Call the model with function calling enabled
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=self.model,
+                temperature=0.3,  # Lower temperature for more accurate translations
+                tools=tools,
+                tool_choice={"type": "function", "function": {"name": "translate_text"}}
+            )
+            
+            # Extract the function call response
+            tool_call = chat_completion.choices[0].message.tool_calls[0]
+            function_args = json.loads(tool_call.function.arguments)
+            
+            # Return just the translated text or with notes if available
+            if "language_notes" in function_args and function_args["language_notes"]:
+                return f"{function_args['translated_text']}\n\nNotes: {function_args['language_notes']}"
+            else:
+                return function_args["translated_text"]
+            
         except Exception as e:
             print(f"Error translating text: {e}")
             return None
           
-# if __name__ == "__main__":
-#   groq_agent = GroqAgent() 
+if __name__ == "__main__":
+   groq_agent = GroqAgent() 
+   print(groq_agent.translate("I am going to play ", target_language="sanskrit")) # Sanskrit
+
 #   # Example usage and summary/explanation testing
 #   text_to_process = "This is a test string for demonstration.  It includes several sentences to showcase the summarization and explanation capabilities.  Let's add a few more sentences to make it a bit more substantial. And even one more for good measure."
   
@@ -102,7 +149,8 @@ class GroqAgent:
 #   response = groq_agent.generate_text("Write a short story about a cat.")
 #   if response:
 #       print("\nShort story about a cat:\n", response)
-  
+
+
 #   messages = [
 #       {"role": "user", "content": "Hello, how are you?"},
 #       {"role": "assistant", "content": "I am doing well, thank you."},
@@ -111,7 +159,7 @@ class GroqAgent:
 #   chat_response = groq_agent.chat(messages)
 #   if chat_response:
 #       print("\nChat response:\n", chat_response)
-    
+
 #   #Test translate with diff languages
 #   print(groq_agent.translate("Hello, world!", target_language="hi")) # Hindi
 #   print(groq_agent.translate("How are you?", target_language="fr")) # French
@@ -122,4 +170,4 @@ class GroqAgent:
 #   print(groq_agent.translate("This is a test", target_language="ja")) # Japanese
 #   print(groq_agent.translate("Thank you", target_language="ko")) # Korean
 #   print(groq_agent.translate("You're welcome", target_language="pt")) # Portuguese
-#   print(groq_agent.translate("Goodbye", target_language="zh-CN")) # Chinese
+    
