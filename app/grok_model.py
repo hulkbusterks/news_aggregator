@@ -87,10 +87,7 @@ class GroqAgent:
                                     "type": "string",
                                     "description": f"The text translated into {target_language}"
                                 },
-                                "language_notes": {
-                                    "type": "string",
-                                    "description": "Optional notes about the translation or language-specific details"
-                                }
+                                
                             },
                             "required": ["translated_text"]
                         }
@@ -115,10 +112,8 @@ class GroqAgent:
             function_args = json.loads(tool_call.function.arguments)
             
             # Return just the translated text or with notes if available
-            if "language_notes" in function_args and function_args["language_notes"]:
-                return f"{function_args['translated_text']}\n\nNotes: {function_args['language_notes']}"
-            else:
-                return function_args["translated_text"]
+            
+            return function_args["translated_text"]
             
         except Exception as e:
             print(f"Error translating text: {e}")
