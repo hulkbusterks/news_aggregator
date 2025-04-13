@@ -1,12 +1,16 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
-from .models import FeedCreate, FeedUpdate, Feed, FeedContent, ErrorResponse
+from .models import FeedCreate, FeedUpdate, Feed, FeedContent, ErrorResponse,GroqRequest,ExtractBlogRequest
 from .database import FeedDatabase
 from .services import parse_xml_feed, generate_feed_id
-from typing import List
+from typing import List, Optional
 from pydantic import HttpUrl, BaseModel
 import trafilatura
+from .grok_model import GroqAgent
 
 router = APIRouter(prefix="/feeds", tags=["feeds"])
+
+# Initialize the GroqAgent
+groq_agent = GroqAgent()
 
 @router.post("/", response_model=Feed)
 async def create_feed(feed_data: FeedCreate, background_tasks: BackgroundTasks):
@@ -92,8 +96,7 @@ async def refresh_feed(feed_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 # Add this model for the extract blog request
-class ExtractBlogRequest(BaseModel):
-    url: str
+
 
 @router.post("/extractblog", response_model=dict)
 async def extract_blog(request: ExtractBlogRequest):
@@ -105,6 +108,74 @@ async def extract_blog(request: ExtractBlogRequest):
             raise HTTPException(status_code=400, detail="Could not extract content from the provided URL")
         
         return {"url": request.url, "content": content}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# GroqAgent consolidated endpoints
+
+
+
+@router.post("/groq", response_model=dict)
+async def process_with_groq(request: GroqRequest):
+    try:
+        if request.operation == "generate":
+            result = groq_agent.generate_text(
+                prompt=request.text,
+                max_tokens=request.max_tokens,
+                temperature=request.temperature,
+                top_p=request.top_p,
+                top_k=request.top_k
+            )
+            return {"response": result}
+        
+        elif request.operation == "summarize":
+            result = groq_agent.summarize(
+                text=request.text, 
+                mode=request.mode
+            )
+            return {"summary": result}
+        
+        elif request.operation == "explain":
+            result = groq_agent.explain(
+                text=request.text, 
+                mode=request.mode
+            )
+            return {"explanation": result}
+        
+        elif request.operation == "translate":
+            result = groq_agent.translate(
+                text=request.text, 
+                target_language=request.target_language
+            )
+            return {"translation": result}
+        
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid operation: {request.operation}. Must be one of: generate, summarize, explain, translate"
+            )
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class ChatRequest(BaseModel):
+    messages: list
+    max_tokens: Optional[int] = 1024
+    temperature: Optional[float] = 0.7
+    top_p: Optional[float] = 1.0
+    top_k: Optional[int] = 50
+
+@router.post("/groq/chat", response_model=dict)
+async def chat_with_groq(request: ChatRequest):
+    try:
+        result = groq_agent.chat(
+            messages=request.messages,
+            max_tokens=request.max_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p,
+            top_k=request.top_k
+        )
+        return {"response": result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) 
     

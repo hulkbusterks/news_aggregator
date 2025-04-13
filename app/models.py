@@ -22,3 +22,16 @@ class FeedContent(BaseModel):
     
 class ErrorResponse(BaseModel):
     detail: str 
+
+class GroqRequest(BaseModel):
+    text: str
+    operation: str  # "generate", "summarize", "explain", "translate"
+    mode: Optional[str] = "default"
+    target_language: Optional[str] = "en"
+    max_tokens: Optional[int] = 1024
+    temperature: Optional[float] = 0.7
+    top_p: Optional[float] = 1.0
+    top_k: Optional[int] = 50
+
+class ExtractBlogRequest(BaseModel):
+    url: str

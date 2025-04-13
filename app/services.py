@@ -54,3 +54,4 @@ def generate_feed_id(name: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     safe_name = name.lower().replace(" ", "_")
     return f"{safe_name}_{timestamp}" 
+
