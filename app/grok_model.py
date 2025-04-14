@@ -46,10 +46,14 @@ class GroqAgent:
             prompt = f"Summarize the following text:\n\n{text}"
             if mode == "5-year-old":
                 prompt = f"Summarize the following text for a 5-year-old:\n\n{text}"
-            elif mode == "detailed":
-                prompt = f"Provide a detailed summary of the following text:\n\n{text}"
+            elif mode == "beginner":
+                prompt = f"Provide a detailed summary of the following text for a person that no background in this topic:\n\n{text}"
             elif mode == "layman":
                 prompt = f"Summarize the following text in simple terms:\n\n{text}"
+            elif mode == "college":
+                prompt = f"Summarize the following text for a college student specializing in this topic:\n\n{text}"
+            elif mode == "expert":
+                prompt = f"Summarize the followinf text for a topic expert going in detail:\n\n{text}"
             summary = self.generate_text(prompt)
             return summary
         except Exception as e:
@@ -61,10 +65,14 @@ class GroqAgent:
             prompt = f"Explain the following text:\n\n{text}"
             if mode == "5-year-old":
                 prompt = f"Explain the following text to a 5-year-old:\n\n{text}"
-            elif mode == "detailed":
-                prompt = f"Provide a detailed explanation of the following text:\n\n{text}"
+            elif mode == "beginner":
+                prompt = f"Provide a detailed explanation of the following text for a person that no background in this topic:\n\n{text}"
             elif mode == "layman":
                 prompt = f"Explain the following text in simple terms:\n\n{text}"
+            elif mode == "college":
+                prompt = f"Explain the following text for a college student specializing in this topic:\n\n{text}"
+            elif mode == "expert":
+                prompt = f"Explain the followinf text for a topic expert going in detail:\n\n{text}"
             explanation = self.generate_text(prompt)
             return explanation
         except Exception as e:
