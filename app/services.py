@@ -1,12 +1,12 @@
 import requests
 import xml.etree.ElementTree as ET
-from typing import Dict, Any
+from typing import Dict, Any, List
 import uuid
 import json
 from datetime import datetime
 
-def parse_xml_feed(url: str) -> Dict[str, Any]:
-    """Fetch and parse XML feed from URL"""
+def parse_xml_feed(url: str) -> List[Dict[str, Any]]:
+    """Fetch and parse XML feed from URL, returning items with unique IDs"""
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -14,30 +14,23 @@ def parse_xml_feed(url: str) -> Dict[str, Any]:
         # Parse XML
         root = ET.fromstring(response.text)
         
-        # Convert XML to dictionary
-        # This is a simplified version - you may need to adapt
-        # this based on the specific XML structure of your feeds
-        result = {
-            "title": find_element_text(root, ".//title") or "Unknown",
-            "description": find_element_text(root, ".//description") or "",
-            "items": []
-        }
-        
         # Find items/entries
         items = root.findall(".//item") or root.findall(".//entry")
         
+        parsed_items = []
         for item in items:
             item_dict = {
+                "id": str(uuid.uuid4()),  # Generate unique ID for each item
                 "title": find_element_text(item, "./title") or "No Title",
                 "link": find_element_text(item, "./link") or "",
                 "description": find_element_text(item, "./description") or 
-                               find_element_text(item, "./content") or "",
+                             find_element_text(item, "./content") or "",
                 "pub_date": find_element_text(item, "./pubDate") or 
-                            find_element_text(item, "./published") or "",
+                           find_element_text(item, "./published") or "",
             }
-            result["items"].append(item_dict)
+            parsed_items.append(item_dict)
         
-        return result
+        return parsed_items
     
     except requests.RequestException as e:
         raise Exception(f"Failed to fetch XML: {str(e)}")
