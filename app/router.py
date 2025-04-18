@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
-from .models import FeedCreate, FeedUpdate, Feed, FeedItem, ErrorResponse, GroqRequest, ExtractBlogRequest, ChatRequest
+from .models import FeedCreate, FeedUpdate, Feed, FeedItem, ErrorResponse, GroqRequest, ExtractBlogRequest, ChatRequest, MediaItem
 from .database import FeedDatabase
 from .services import parse_xml_feed, generate_feed_id
 from typing import List, Optional
@@ -53,10 +53,38 @@ async def get_feed(feed_id: str):
 
 @router.get("/{feed_id}/items", response_model=List[FeedItem])
 async def get_feed_items(feed_id: str):
-    items = FeedDatabase.get_feed_items(feed_id)
-    if items is None:
+    """Get items for a specific feed"""
+    feed = FeedDatabase.get_feed(feed_id)
+    if not feed:
         raise HTTPException(status_code=404, detail="Feed not found")
-    return items
+    return feed["items"]
+
+@router.get("/{feed_id}/items/{item_id}/media", response_model=List[MediaItem])
+async def get_item_media(feed_id: str, item_id: str):
+    """Get media items for a specific feed item"""
+    feed = FeedDatabase.get_feed(feed_id)
+    if not feed:
+        raise HTTPException(status_code=404, detail="Feed not found")
+    
+    item = next((item for item in feed["items"] if item["id"] == item_id), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    return item.get("media", [])
+
+@router.get("/{feed_id}/items/{item_id}/media/{media_type}", response_model=List[MediaItem])
+async def get_item_media_by_type(feed_id: str, item_id: str, media_type: str):
+    """Get media items of a specific type for a feed item"""
+    feed = FeedDatabase.get_feed(feed_id)
+    if not feed:
+        raise HTTPException(status_code=404, detail="Feed not found")
+    
+    item = next((item for item in feed["items"] if item["id"] == item_id), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    media_items = [media for media in item.get("media", []) if media["type"].lower() == media_type.lower()]
+    return media_items
 
 @router.put("/{feed_id}", response_model=Feed)
 async def update_feed(feed_id: str, feed_data: FeedUpdate):

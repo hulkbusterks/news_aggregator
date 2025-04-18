@@ -2,6 +2,24 @@ from pydantic import BaseModel, HttpUrl
 from typing import Optional, Dict, Any, List
 from uuid import uuid4
 
+class MediaItem(BaseModel):
+    type: str
+    url: str
+    width: Optional[str] = None
+    height: Optional[str] = None
+    medium: Optional[str] = None
+    description: Optional[str] = None
+    length: Optional[str] = None
+
+class FeedItem(BaseModel):
+    id: str
+    title: str
+    link: str
+    description: str
+    pub_date: str
+    media: List[MediaItem] = []
+    content_encoded: Optional[str] = None
+
 class FeedCreate(BaseModel):
     name: str
     url: HttpUrl
@@ -11,13 +29,6 @@ class FeedUpdate(BaseModel):
     name: Optional[str] = None
     url: Optional[HttpUrl] = None
     category: Optional[str] = None
-    
-class FeedItem(BaseModel):
-    id: str
-    title: str
-    link: str
-    description: str
-    pub_date: str
     
 class Feed(BaseModel):
     id: str
