@@ -11,4 +11,3 @@ langchain_text_splitters
 feedparser
 numpy
 sentence_transformers
-sqlite3
