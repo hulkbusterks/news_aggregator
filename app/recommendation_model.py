@@ -205,10 +205,9 @@ def blog_recommendation_with_preferences_json(client: Groq, model: str, user_pre
 
 def main():
     agent = GroqAgent()
+    embedding_function = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
     initialize_sqlite_database()
-    docsearch = None 
-    sentence_similarity_model = SentenceTransformer(
-        SENTENCE_SIMILARITY_MODEL)  
+    docsearch = None  
     print("Multi-Feed Blog Recommendation System (FAISS for Search, SQLite for Data)")
     all_documents = [] 
     while True:
