@@ -6,10 +6,13 @@ lxml==4.9.3
 python-multipart==0.0.6
 groq==0.22.0
 python-dotenv==1.0.0
-langchain==0.1.0
+
+# Updated LangChain packages (fully compatible)
+langchain==0.1.14
 langchain-core==0.1.28
 langchain-community==0.0.20
 langchain-text-splitters==0.0.1
+
 faiss-cpu==1.7.4
 feedparser==6.0.10
 numpy==1.24.3
