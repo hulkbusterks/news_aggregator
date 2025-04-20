@@ -422,7 +422,8 @@ async def load_feeds_to_faiss():
             docsearch = FAISS.load_local(
                 FAISS_INDEX_PATH, 
                 embedding_function, 
-                index_name=INDEX_NAME
+                index_name=INDEX_NAME,
+                allow_dangerous_deserialization=True  # Safe since we're loading our own local index
             )
             # Add new documents to existing index
             docsearch.add_texts(
@@ -468,7 +469,12 @@ async def search_feeds(search_query: SearchQuery):
         embedding_function = SentenceTransformerEmbeddings(model_name=SENTENCE_SIMILARITY_MODEL)
         
         # Load FAISS index
-        docsearch = FAISS.load_local(FAISS_INDEX_PATH, embedding_function, index_name=INDEX_NAME)
+        docsearch = FAISS.load_local(
+            FAISS_INDEX_PATH, 
+            embedding_function, 
+            index_name=INDEX_NAME,
+            allow_dangerous_deserialization=True  # Safe since we're loading our own local index
+        )
         
         # Perform similarity search
         docs = docsearch.similarity_search_with_score(

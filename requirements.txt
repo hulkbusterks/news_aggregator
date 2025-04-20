@@ -1,20 +1,26 @@
-fastapi==0.104.1
-uvicorn==0.23.2
-pydantic==2.11.3
-requests==2.31.0
-lxml==4.9.3
-python-multipart==0.0.6
-groq==0.22.0
-python-dotenv==1.0.0
+fastapi
+uvicorn
+pydantic
+requests
+lxml
+python-multipart
+groq
+python-dotenv
 
-# LangChain ecosystem aligned on 0.3.x
-langchain==0.3.23
-langchain-core==0.3.54
-langchain-community==0.3.21
-langchain-text-splitters==0.3.8
+# LangChain packages with compatible versions
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+# Vector store and embeddings
+faiss-cpu
+sentence-transformers
 
-faiss-cpu==1.7.4
-feedparser==6.0.10
-numpy
-sentence-transformers==2.2.2
-trafilatura==1.6.1
+# Feed parsing and content extraction
+feedparser
+trafilatura
+
+# Required dependencies
+numpy  # Updated to a stable version compatible with other packages
+torch # Required by sentence-transformers
+transformers
