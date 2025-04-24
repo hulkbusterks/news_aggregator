@@ -111,6 +111,7 @@ class GroqAgent:
                 messages=[{"role": "user", "content": prompt}],
                 model=self.model,
                 temperature=0.3,  # Lower temperature for more accurate translations
+                max_tokens=8192,
                 tools=tools,
                 tool_choice={"type": "function", "function": {"name": "translate_text"}}
             )
