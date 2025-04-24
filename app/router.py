@@ -537,3 +537,310 @@ async def search_feeds(search_query: SearchQuery):
         raise HTTPException(status_code=500, detail=f"Error performing search: {str(e)}")
 
 
+class UserInterest(BaseModel):
+    interest: str = Field(..., description="User interest topic")
+
+class UserInterests(BaseModel):
+    interests: List[UserInterest] = Field(..., description="List of user interests", max_items=9)
+
+# Replace the global variable with file-based storage
+import json
+import os
+
+# File path for storing user interests
+INTERESTS_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "user_interests.json")
+
+# Ensure the data directory exists
+os.makedirs(os.path.dirname(INTERESTS_FILE_PATH), exist_ok=True)
+
+# Function to load interests from file
+def load_interests():
+    if not os.path.exists(INTERESTS_FILE_PATH):
+        return []
+    try:
+        with open(INTERESTS_FILE_PATH, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return []
+
+# Function to save interests to file
+def save_interests(interests):
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(INTERESTS_FILE_PATH), exist_ok=True)
+    with open(INTERESTS_FILE_PATH, 'w') as f:
+        json.dump(interests, f)
+
+@router.post("/interests")
+async def add_interests(interests: UserInterests):
+    """Add or update user interests (maximum 9)"""
+    try:
+        # Get existing interests
+        existing_interests = load_interests()
+        
+        # Add new interests (avoiding duplicates)
+        new_interests = [interest.interest for interest in interests.interests]
+        
+        # Combine existing and new interests, remove duplicates, and limit to 9
+        combined_interests = list(set(existing_interests + new_interests))[:9]
+        
+        # Save to file
+        save_interests(combined_interests)
+        
+        return {
+            "status": "success",
+            "message": f"Successfully added interests. Total: {len(combined_interests)}",
+            "interests": combined_interests
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error adding interests: {str(e)}")
+
+@router.delete("/interests")
+async def reset_interests():
+    """Reset all user interests"""
+    try:
+        # Clear all interests
+        save_interests([])
+        
+        return {
+            "status": "success",
+            "message": "Successfully reset all interests",
+            "interests": []
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error resetting interests: {str(e)}")
+
+# @router.get("/interests", response_model=dict)
+# async def get_interests():
+#     """Get current user interests"""
+#     try:
+#         # Check if file exists
+#         if not os.path.exists(INTERESTS_FILE_PATH):
+#             return {
+#                 "status": "success",
+#                 "interests": [],
+#                 "note": "No interests file found"
+#             }
+        
+#         # Try to load interests with explicit error handling
+#         try:
+#             with open(INTERESTS_FILE_PATH, 'r') as f:
+#                 user_interests = json.load(f)
+#         except json.JSONDecodeError:
+#             # File exists but contains invalid JSON
+#             return {
+#                 "status": "success",
+#                 "interests": [],
+#                 "note": "Interest file contains invalid JSON, resetting"
+#             }
+#         except Exception as e:
+#             # Other file reading errors
+#             return {
+#                 "status": "success",
+#                 "interests": [],
+#                 "note": f"Error reading interests file: {str(e)}"
+#             }
+        
+#         return {
+#             "status": "success",
+#             "interests": user_interests
+#         }
+#     except Exception as e:
+#         # Catch-all for any other errors
+#         return {
+#             "status": "success",
+#             "interests": [],
+#             "error": str(e)
+#         }
+
+@router.post("/recommended-feeds")
+async def get_recommended_feeds():
+    """Get feed recommendations based on user interests"""
+    try:
+        # Load interests from file
+        user_interests = load_interests()
+        
+        if not user_interests:
+            raise HTTPException(
+                status_code=400,
+                detail="No interests found. Please add interests first."
+            )
+        
+        # Get all feeds for random selection
+        all_feeds = FeedDatabase.list_feeds()
+        if not all_feeds:
+            raise HTTPException(status_code=404, detail="No feeds found in database")
+        
+        import random
+        
+        # Track all results to avoid duplicates
+        all_results = []
+        seen_items = set()  # Track seen items by their IDs
+        
+        # Get more results for each interest (5 per interest instead of 3)
+        for interest in user_interests:
+            # Create a search query for this interest with more results
+            search_query = SearchQuery(query=interest, k=5)
+            
+            try:
+                # Use the existing search function
+                search_results = await search_feeds(search_query)
+                
+                # Add non-duplicate results
+                for result in search_results.get("results", []):
+                    item_id = f"{result['feed']['id']}:{result['item']['id']}"
+                    if item_id not in seen_items:
+                        all_results.append(result)
+                        seen_items.add(item_id)
+            except HTTPException:
+                # Continue if no results for this interest
+                continue
+        
+        # Add random feeds that aren't already included
+        # Keep adding until we reach 30 total or run out of attempts
+        random_feeds = []
+        attempts = 0
+        max_attempts = 50  # Increased from 20 to 50
+        
+        while len(all_results) + len(random_feeds) < 30 and attempts < max_attempts:
+            attempts += 1
+            random_feed = random.choice(all_feeds)
+            
+            if not random_feed.get("items"):
+                continue
+                
+            random_item = random.choice(random_feed.get("items"))
+            item_id = f"{random_feed['id']}:{random_item['id']}"
+            
+            if item_id not in seen_items:
+                # Get media items for this feed item
+                media_items = random_item.get("media", [])
+                image_links = [media["url"] for media in media_items 
+                              if media.get("type", "").lower() in ["image", "img", "thumbnail"]]
+                
+                random_feeds.append({
+                    "feed": {
+                        "id": random_feed["id"],
+                        "name": random_feed["name"],
+                        "category": random_feed["category"]
+                    },
+                    "item": {
+                        "id": random_item["id"],
+                        "title": random_item.get("title", ""),
+                        "link": random_item.get("link", ""),
+                        "pub_date": random_item.get("pub_date", ""),
+                        "description": random_item.get("description", "")
+                    },
+                    "media": {
+                        "images": image_links,
+                        "all_media": media_items
+                    },
+                    "relevance_score": 0.0,  # No relevance score for random items
+                    "matched_content": random_item.get("description", "") or random_item.get("title", "")
+                })
+                seen_items.add(item_id)
+        
+        # Combine interest-based and random results
+        combined_results = all_results + random_feeds
+        
+        # Limit to 30 results maximum
+        combined_results = combined_results[:30]
+        
+        if not combined_results:
+            raise HTTPException(
+                status_code=404,
+                detail="No relevant feed items found for your interests"
+            )
+        
+        return {
+            "status": "success",
+            "interests": user_interests,
+            "results_count": len(combined_results),
+            "results": combined_results
+        }
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Error getting recommendations: {str(e)}")
+
+@router.post("/similar-interests")
+async def get_similar_interests():
+    """Generate similar interests based on existing user interests"""
+    try:
+        # Load existing interests
+        user_interests = load_interests()
+        
+        if not user_interests:
+            raise HTTPException(
+                status_code=400,
+                detail="No interests found. Please add interests first."
+            )
+        
+        # Format interests for the prompt
+        interests_text = ", ".join(user_interests)
+        
+        # Create system message with instructions
+        system_message = f"""
+        You are an interest recommendation system. Based on the user's existing interests, 
+        suggest 5 additional related interests they might enjoy. Each interest should be 
+        a short phrase (1-3 words). Provide a brief explanation of why you selected these interests.
+        
+        Format your response as a JSON object with the following structure:
+        {{
+            "similar_interests": ["interest1", "interest2", "interest3", "interest4", "interest5"],
+            "reasoning": "Brief explanation of why these interests were selected"
+        }}
+        """
+        
+        # Create user message with the interests
+        user_message = f"My current interests are: {interests_text}. Please suggest similar interests I might enjoy."
+        
+        # Use Groq to generate similar interests without tool calling
+        result = groq_agent.chat(
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=500,
+            temperature=0.7
+        )
+        
+        try:
+            import re
+            json_match = re.search(r'\{.*\}', result, re.DOTALL)
+            if json_match:
+                try:
+                    parsed_result = json.loads(json_match.group(0))
+                    similar_interests = parsed_result.get("similar_interests", [])
+                    reasoning = parsed_result.get("reasoning", "")
+                except:
+                    lines = result.strip().split('\n')
+                    similar_interests = [line.strip() for line in lines if line.strip() and not line.startswith('{') and not line.startswith('}')][:5]
+                    reasoning = "Generated based on your existing interests."
+            else:
+                lines = result.strip().split('\n')
+                similar_interests = [line.strip() for line in lines if line.strip() and not line.startswith('{') and not line.startswith('}')][:5]
+                reasoning = "Generated based on your existing interests."
+            
+            similar_interests = similar_interests[:5]
+            while len(similar_interests) < 5:
+                similar_interests.append(f"Interest {len(similar_interests) + 1}")
+            
+            return {
+                "status": "success",
+                "original_interests": user_interests,
+                "similar_interests": similar_interests,
+            }
+        except Exception as parsing_error:
+            # Fallback response if parsing fails
+            return {
+                "status": "partial_success",
+                "original_interests": user_interests,
+                "similar_interests": ["Technology", "Science", "Arts", "Sports", "Travel"],
+                "error": str(parsing_error),
+                "raw_response": str(result)
+            }
+            
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Error generating similar interests: {str(e)}")
