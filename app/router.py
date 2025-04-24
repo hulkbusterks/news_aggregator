@@ -497,7 +497,10 @@ async def search_feeds(search_query: SearchQuery):
             item = next((item for item in feed.get("items", []) if item["id"] == item_id), None)
             if not item:
                 continue
-                
+            # Get media items for this feed item
+            media_items = item.get("media", [])
+            image_links = [media["url"] for media in media_items if media.get("type", "").lower() in ["image", "img", "thumbnail"]]
+
             results.append({
                 "feed": {
                     "id": feed_id,
@@ -510,6 +513,10 @@ async def search_feeds(search_query: SearchQuery):
                     "link": item.get("link", ""),
                     "pub_date": item.get("pub_date", ""),
                     "description": item.get("description", "")
+                },
+                "media": {
+                    "images": image_links,
+                    "all_media": media_items
                 },
                 "relevance_score": float(score),
                 "matched_content": doc.page_content
