@@ -10,7 +10,7 @@ Problem Statement 1 - Weave AI magic with Groq
 LensNews solves the problem of information overload by providing a personalized news experience. Users can define their interests and receive tailored news recommendations, search across multiple sources with a single query, and discover related topics through AI-generated suggestions. This serves anyone who wants to stay informed without being overwhelmed by irrelevant content.
 
 ## 🧠 Team & Approach
-**Team Name:** NewsAI Innovators
+**Team Name:** Hack Overflow
 
 **Team Members:**
 - Kritik Sharma (GitHub: [hulkbusterks](https://github.com/hulkbusterks) / LinkdIn: https://www.linkedin.com/in/kritik-sharma-qwerty /Role: Backend Developer)
