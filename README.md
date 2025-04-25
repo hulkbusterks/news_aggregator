@@ -55,8 +55,8 @@ We chose this problem because information overload is a growing challenge in the
 **Local Setup:**
 ```bash
 # Clone the repo
-git clone https://github.com/kritiksharma/LensNews.git
-cd LensNews
+git clone https://github.com/kritiksharma/news_aggregator
+cd news_aggregator
 
 # Install dependencies
 pip install -r requirements.txt
@@ -73,10 +73,10 @@ Docker Setup:
 
 ```bash
 # Build the Docker image
-docker build -t lensnews .
+docker build -t news_aggregator .
 
 # Run the container
-docker run -p 7860:7860 -e GROQ_API_KEY=your_api_key_here lensnews
+docker run -p 7860:7860 -e GROQ_API_KEY=your_api_key_here news_aggregator
 ```
 
 ## 🧬 Future Scope
